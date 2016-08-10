@@ -1006,7 +1006,7 @@ pub struct Resolver<'a> {
     //
     // There will be an anonymous module created around `g` with the ID of the
     // entry block for `f`.
-    pub module_map: NodeMap<Module<'a>>,
+    module_map: NodeMap<Module<'a>>,
 
     // Whether or not to print error messages. Can be set to true
     // when getting additional info for error message suggestions,
@@ -3376,7 +3376,11 @@ impl<'a> Resolver<'a> {
             (true, _) | (_, true) => struct_span_err!(self.session, span, E0260, "{}", msg),
             _ => match (old_binding.is_import(), binding.is_import()) {
                 (false, false) => struct_span_err!(self.session, span, E0428, "{}", msg),
-                (true, true) => struct_span_err!(self.session, span, E0252, "{}", msg),
+                (true, true) => {
+                    let mut e = struct_span_err!(self.session, span, E0252, "{}", msg);
+                    e.span_label(span, &format!("already imported"));
+                    e
+                },
                 _ => {
                     let mut e = struct_span_err!(self.session, span, E0255, "{}", msg);
                     e.span_label(span, &format!("`{}` was already imported", name));

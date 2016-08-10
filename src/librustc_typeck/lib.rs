@@ -139,9 +139,6 @@ pub struct TypeAndSubsts<'tcx> {
 pub struct CrateCtxt<'a, 'tcx: 'a> {
     ast_ty_to_ty_cache: RefCell<NodeMap<Ty<'tcx>>>,
 
-    /// A mapping from method call sites to traits that have that method.
-    pub trait_map: hir::TraitMap,
-
     /// A vector of every trait accessible in the whole crate
     /// (i.e. including those from subcrates). This is used only for
     /// error reporting, and so is lazily initialised and generally
@@ -211,11 +208,15 @@ fn check_main_fn_ty(ccx: &CrateCtxt,
             match tcx.map.find(main_id) {
                 Some(hir_map::NodeItem(it)) => {
                     match it.node {
-                        hir::ItemFn(_, _, _, _, ref ps, _)
-                        if ps.is_parameterized() => {
-                            span_err!(ccx.tcx.sess, main_span, E0131,
-                                      "main function is not allowed to have type parameters");
-                            return;
+                        hir::ItemFn(_, _, _, _, ref generics, _) => {
+                            if let Some(gen_span) = generics.span() {
+                                struct_span_err!(ccx.tcx.sess, gen_span, E0131,
+                                         "main function is not allowed to have type parameters")
+                                    .span_label(gen_span,
+                                                &format!("main cannot have type parameters"))
+                                    .emit();
+                                return;
+                            }
                         }
                         _ => ()
                     }
@@ -317,13 +318,11 @@ fn check_for_entry_fn(ccx: &CrateCtxt) {
     }
 }
 
-pub fn check_crate<'a, 'tcx>(tcx: TyCtxt<'a, 'tcx, 'tcx>,
-                             trait_map: hir::TraitMap)
+pub fn check_crate<'a, 'tcx>(tcx: TyCtxt<'a, 'tcx, 'tcx>)
                              -> CompileResult {
     let time_passes = tcx.sess.time_passes();
     let ccx = CrateCtxt {
         ast_ty_to_ty_cache: RefCell::new(NodeMap()),
-        trait_map: trait_map,
         all_traits: RefCell::new(None),
         stack: RefCell::new(Vec::new()),
         tcx: tcx
