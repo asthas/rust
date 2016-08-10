@@ -14,6 +14,6 @@ trait SomeTrait {
 
 fn main() {
     let trait_obj: &SomeTrait = SomeTrait; //~ ERROR E0425
-                                           //~^ ERROR E0038
+                                          //~^ ERROR E0038
     let &invalid = trait_obj; //~ ERROR E0033
 }

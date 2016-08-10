@@ -346,6 +346,7 @@ fn resolve_struct_error<'b, 'a: 'b, 'c>(resolver: &'b Resolver<'a>,
                                            "unresolved name `{}`{}",
                                            path,
                                            msg);
+            err.span_label(span, &format!("trait used as expression"));
             match context {
                 UnresolvedNameContext::Other => {
                     if msg.is_empty() && is_static_method && is_field {
